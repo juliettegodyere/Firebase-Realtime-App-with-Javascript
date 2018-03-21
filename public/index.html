@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Firebase Chat</title>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/4.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/4.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/4.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/4.10.1/firebase-messaging.js"></script>
+
+   <!-- including Firebase -->
+   <script src="https://www.gstatic.com/firebasejs/4.11.0/firebase.js"></script>
+
+    <style media="screen">
+      body { width: 100%; height: 100%; background: rgb(108, 118, 124); color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
+      body, #main { margin-top: 0; background: rgb(163, 37, 37); box-shadow: none; padding :10px; position: relative} 
+      .msg {
+      margin: 10px 0;
+      padding: 10px;
+      width: 400px;
+      background-color: #efefef;
+    }
+    #username, #text {
+      margin: 5px 0px;
+    }
+    #post {
+      background-color: rgb(25, 128, 80);
+      border: none;
+      color: #FFF;
+    }
+    #login {
+      margin-top: 15px;
+      background-color: rgb(25, 128, 80);
+      border: none;
+      color: #FFF;
+      cursor: pointer;
+
+    }
+    #logout {
+      margin-top: 15px;
+      background-color: rgb(25, 128, 80);
+      border: none;
+      color: #FFF;
+      cursor: pointer;
+
+    }
+    .inputStyle{
+      position: fixed;
+      bottom:0px;
+      width: 100%;
+    }
+    </style>
+  </head>
+  <body>
+    <div class="main container-fluid">
+      <div class="row">
+          <div class="col-md-6"><button id="login" class="btn btn-success btn-lg active">Login with Google</button></div>
+          <div class="col-md-6"><button id="logout" class="btn btn-success btn-lg active">Log Out</button></div>
+      </div><br/><hr/>
+      <div class="row">
+          <div id="results"></div>
+      </div><br/>
+      <div class="container-fluid inputStyle">
+          <div class="row">
+              <div class="col-md-10"><input id="text" type="text" placeholder="Message" class="form-control"/></div>
+              <div class="col-md-2"><button id="post" class="btn btn-success btn-lg active">Post</button></div>
+            </div>
+      </div>
+   </div>
+      
+    <script>
+      //var messagesRef = new Firebase("https://fir-chat-app-7731d.firebaseio.com/chat");
+      // Initialize Firebase
+      var config = {
+        apiKey: "AIzaSyBIViGImNQY73asRmxkzLSCkiMeUE6ELnQ",
+        authDomain: "realtime-chat-app-198008.firebaseapp.com",
+        databaseURL: "https://realtime-chat-app-198008.firebaseio.com",
+        projectId: "realtime-chat-app-198008",
+        storageBucket: "realtime-chat-app-198008.appspot.com",
+        messagingSenderId: "94110917537"
+      };
+      firebase.initializeApp(config);
+      var messagesRef = firebase.database().ref(); 
+      var provider = new firebase.auth.GoogleAuthProvider();
+      provider.addScope('https://www.googleapis.com/auth/plus.login');
+
+      //var usernameInput = document.querySelector('#username');
+      var textInput = document.querySelector('#text');
+      var postButton = document.querySelector('#post');
+      var results = document.querySelector('#results');
+
+      var username = null;
+      var loginButton = document.querySelector('#login');
+      var logoutButton = document.querySelector('#logout');
+      postButton.style.display = "none";
+      textInput.style.display = "none";
+      logoutButton.style.display = "none";
+
+      postButton.addEventListener("click", function() {
+        //var msgUser = usernameInput.value;
+        var msgUser = username;
+        var msgText = textInput.value;
+        messagesRef.push({
+          username:msgUser, 
+          text:msgText
+        });
+        textInput.value = "";
+      });
+      /** Function to add a data listener **/
+      var startListening = function() {
+          messagesRef.on('child_added', function(snapshot) {
+          var msg = snapshot.val();
+        
+          var msgUsernameElement = document.createElement("b");
+          msgUsernameElement.textContent = msg.username;
+          
+          var msgTextElement = document.createElement("p");
+          msgTextElement.textContent = msg.text;
+    
+          var msgElement = document.createElement("div");
+          msgElement.appendChild(msgUsernameElement);
+          msgElement.appendChild(msgTextElement);
+
+          document.getElementById("results").appendChild(msgElement);
+          // ADD THIS LINE
+          msgElement.className = "msg";
+          document.getElementById("results").appendChild(msgElement);
+        });
+      }
+
+      loginButton.addEventListener("click", function() {
+        firebase.auth().signInWithPopup(provider).then(function(authData) {
+          // This gives you a Google Access Token. You can use it to access the Google API.
+          var token = authData.credential.accessToken;
+          //console.log(authData);
+          // The signed-in user info.
+          username = authData.user.displayName;
+          console.log(username);
+          loginButton.textContent = "Logged in as " + username;
+          loginButton.disabled = true;
+          postButton.style.display = "block";
+          textInput.style.display = "block";
+          logoutButton.disabled = false;
+          logoutButton.style.display = "block";
+          // Start listening for data, remove previous calls to this method
+          startListening();
+          // ...
+        }).catch(function(error) {
+          // Handle Errors here.
+          var errorCode = error.code;
+          var errorMessage = error.message;
+          // The email of the user's account used.
+          var email = error.email;
+          // The firebase.auth.AuthCredential type that was used.
+          var credential = error.credential;
+          	  console.log(error);
+          // ...
+        });
+      });
+
+      logoutButton.addEventListener("click", function() {
+      firebase.auth().signOut().then(function() {
+      // Sign-out successful.
+        loginButton.disabled = false;
+        logoutButton.disabled = true;
+        postButton.style.display = "none";
+        textInput.style.display = "none";
+        results.style.display ="none";
+        console.log("Successfully logged out");
+      }).catch(function(error) {
+      // An error happened.
+          var errorCode = error.code;
+          var errorMessage = error.message;
+          console.log(errorMessage);
+      });
+      });
+
+    </script>
+  </body>
+</html>
